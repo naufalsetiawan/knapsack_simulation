@@ -3,8 +3,21 @@ import random
 def knapsack_ga(weights, values, capacity, pop_size=50, generations=100, crossover_rate=0.8, mutation_rate=0.1):
     num_items = len(weights)
 
+    # def generate_individual():
+    #     return [random.randint(0, 1) for _ in range(num_items)] 
+    
     def generate_individual():
-        return [random.randint(0, 1) for _ in range(num_items)]
+        individual = [0] * num_items
+        total_weight = 0
+        indices = list(range(num_items))
+        random.shuffle(indices)
+        for i in indices:
+            if total_weight + weights[i] <= capacity:
+                if random.random() < 0.5:
+                    individual[i] = 1
+                    total_weight += weights[i]
+        return individual
+
 
     def fitness(individual):
         total_weight = sum(individual[i] * weights[i] for i in range(num_items))

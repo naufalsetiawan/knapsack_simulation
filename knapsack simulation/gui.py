@@ -21,6 +21,15 @@ class KnapsackApp:
         self.capacity_entry = tk.Entry(frm_input, width=10)
         self.capacity_entry.grid(row=0, column=1)
 
+        # Frame generate otomatis
+        frm_gen = tk.LabelFrame(root, text="Generate Items Otomatis")
+        frm_gen.pack(pady=5)
+        tk.Label(frm_gen, text="Jumlah Item (n):").grid(row=0, column=0)
+        self.n_entry = tk.Entry(frm_gen, width=10)
+        self.n_entry.insert(0, "10")
+        self.n_entry.grid(row=0, column=1)
+        tk.Button(frm_gen, text="Generate Items", command=self.generate_items).grid(row=1, columnspan=2, pady=5)
+
         # Input item
         self.tree = ttk.Treeview(root, columns=("Berat", "Nilai"), show="headings", height=5)
         self.tree.heading("Berat", text="Berat")
@@ -31,6 +40,8 @@ class KnapsackApp:
         frm_btn.pack()
         tk.Button(frm_btn, text="Tambah Item", command=self.add_item).grid(row=0, column=0, padx=5)
         tk.Button(frm_btn, text="Hapus Item", command=self.del_item).grid(row=0, column=1, padx=5)
+        tk.Button(frm_btn, text="Hapus Semua Item", command=self.del_all_items).grid(row=0, column=2, padx=5)
+
 
         # Input parameter GA
         frm_ga = tk.LabelFrame(root, text="Parameter Genetic Algorithm")
@@ -56,8 +67,15 @@ class KnapsackApp:
         self.mut_entry.insert(0, "0.1")
         self.mut_entry.grid(row=3, column=1)
 
-        # Tombol Run
-        tk.Button(root, text="Jalankan Semua Algoritma", command=self.run_algorithms).pack(pady=10)
+        # Tombol Runfrm_run = tk.Frame(root)
+        frm_run = tk.Frame(root)
+        frm_run.pack(pady=10)
+
+        tk.Button(frm_run, text="Run DP", command=lambda: self.run_algorithms("dp")).grid(row=0, column=0, padx=5)
+        tk.Button(frm_run, text="Run Backtracking", command=lambda: self.run_algorithms("bt")).grid(row=0, column=1, padx=5)
+        tk.Button(frm_run, text="Run GA", command=lambda: self.run_algorithms("ga")).grid(row=0, column=2, padx=5)
+        tk.Button(frm_run, text="Run Semua", command=lambda: self.run_algorithms("all")).grid(row=0, column=3, padx=5)
+
 
         # Tabel hasil
         self.result_tree = ttk.Treeview(
@@ -70,7 +88,6 @@ class KnapsackApp:
             self.result_tree.heading(col, text=col)
         self.result_tree.pack(pady=5)
 
-        # Di __init__(), ganti bagian grafik:
         self.figure = plt.Figure(figsize=(5,3), dpi=100)
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title("Konvergensi Genetic Algorithm")
@@ -107,7 +124,24 @@ class KnapsackApp:
         for item in selected:
             self.tree.delete(item)
 
-    def run_algorithms(self):
+    def del_all_items(self):
+        self.tree.delete(*self.tree.get_children())
+
+
+    # Generate item otomatis (append)
+    def generate_items(self):
+        try:
+            n = int(self.n_entry.get())
+        except:
+            messagebox.showerror("Error", "Input harus angka")
+            return
+        for _ in range(n):
+            w = random.randint(1, 10)
+            v = random.randint(1, 20)
+            self.tree.insert("", "end", values=(w, v))
+
+
+    def run_algorithms(self, mode="all"):
         # Hapus hasil lama
         self.result_tree.delete(*self.result_tree.get_children())
 
@@ -118,61 +152,64 @@ class KnapsackApp:
         capacity = int(self.capacity_entry.get())
 
         # DP
-        tracemalloc.start()
-        t0 = time.perf_counter()
-        val, items_chosen = knapsack_dp(weights, values, capacity)
-        t1 = time.perf_counter()
-        mem = tracemalloc.get_traced_memory()[1] / 1024
-        tracemalloc.stop()
+        if mode in ("all", "dp"):
+            tracemalloc.start()
+            t0 = time.perf_counter()
+            val, items_chosen = knapsack_dp(weights, values, capacity)
+            t1 = time.perf_counter()
+            mem = tracemalloc.get_traced_memory()[1] / 1024
+            tracemalloc.stop()
 
-        items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
-        self.result_tree.insert(
-            "", "end",
-            values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
-            text="Dynamic Programming"
-        )
+            items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
+            self.result_tree.insert(
+                "", "end",
+                values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
+                text="Dynamic Programming"
+            )
 
         # Backtracking
-        tracemalloc.start()
-        t0 = time.perf_counter()
-        val, items_chosen = knapsack_backtrack(weights, values, capacity, len(weights))
-        t1 = time.perf_counter()
-        mem = tracemalloc.get_traced_memory()[1] / 1024
-        tracemalloc.stop()
+        if mode in ("all", "bt"):
+            tracemalloc.start()
+            t0 = time.perf_counter()
+            val, items_chosen = knapsack_backtrack(weights, values, capacity, len(weights))
+            t1 = time.perf_counter()
+            mem = tracemalloc.get_traced_memory()[1] / 1024
+            tracemalloc.stop()
 
-        items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
-        self.result_tree.insert(
-            "", "end",
-            values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
-            text="Backtracking"
-        )
+            items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
+            self.result_tree.insert(
+                "", "end",
+                values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
+                text="Backtracking"
+            )
 
         # Genetic Algorithm
-        tracemalloc.start()
-        t0 = time.perf_counter()
-        solution, val, history = knapsack_ga(
-            weights, values, capacity,
-            pop_size=30, generations=50,
-            crossover_rate=0.8, mutation_rate=0.1
-        )
-        t1 = time.perf_counter()
-        mem = tracemalloc.get_traced_memory()[1] / 1024
-        tracemalloc.stop()
+        if mode in ("all", "ga"):
+            tracemalloc.start()
+            t0 = time.perf_counter()
+            solution, val, history = knapsack_ga(
+                weights, values, capacity,
+                pop_size=30, generations=50,
+                crossover_rate=0.8, mutation_rate=0.1
+            )
+            t1 = time.perf_counter()
+            mem = tracemalloc.get_traced_memory()[1] / 1024
+            tracemalloc.stop()
 
-        items_chosen = [i for i in range(len(solution)) if solution[i] == 1]
-        items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
-        self.result_tree.insert(
-            "", "end",
-            values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
-            text="Genetic Algorithm"
-        )
+            items_chosen = [i for i in range(len(solution)) if solution[i] == 1]
+            items_str = ", ".join(str(i) for i in items_chosen) if items_chosen else "-"
+            self.result_tree.insert(
+                "", "end",
+                values=(val, items_str, f"{(t1-t0)*1000:.2f}", f"{mem:.1f}"),
+                text="Genetic Algorithm"
+            )
 
-        self.ax.clear()
-        self.ax.plot(range(1, len(history)+1), history, marker="o", linestyle="-")
-        self.ax.set_title("Konvergensi Genetic Algorithm")
-        self.ax.set_xlabel("Generasi")
-        self.ax.set_ylabel("Fitness Terbaik")
-        self.canvas.draw()
+            self.ax.clear()
+            self.ax.plot(range(1, len(history)+1), history, marker="o", linestyle="-")
+            self.ax.set_title("Konvergensi Genetic Algorithm")
+            self.ax.set_xlabel("Generasi")
+            self.ax.set_ylabel("Fitness Terbaik")
+            self.canvas.draw()
 
 if __name__ == "__main__":
     root = tk.Tk()
